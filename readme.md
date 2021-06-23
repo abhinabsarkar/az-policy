@@ -50,6 +50,11 @@ In this case, by defining parameter for list of allowed locations, it will allow
 
 For example, we can specify that the defaultValue is “eastus” and allowedValues are eastus, eastus2, westus, westus2.
 
+### Azure Policy Effect
+Each policy definition in Azure Policy has a single effect. That effect determines what happens when the policy rule is evaluated to match.
+
+Refer https://docs.microsoft.com/en-us/azure/governance/policy/concepts/effects
+
 ## Example: Azure Policy to update Key Vault access policies  
 In this example, a security group will be added using Azure Policy to any Key Vault provisioned within a resource group in a subscription. The ObjectId of the security group is passed as a parameter to the policy assignment.
 ### 1. Create a policy definition
