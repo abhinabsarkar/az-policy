@@ -1,0 +1,9 @@
+{
+    "userObjectId": {
+      "type": "String",
+      "metadata": {
+        "displayName": "User Object ID",
+        "description": "The GUID for the user which should have access"
+      }
+    }
+  }

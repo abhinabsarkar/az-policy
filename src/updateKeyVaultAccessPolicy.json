@@ -1,0 +1,124 @@
+{
+    "name": "Key Vault access policy",
+    "type": "Microsoft.Authorization/policyDefinitions",
+    "apiVersion": "2020-09-01",
+    "properties": {
+      "policyType": "Custom",
+      "mode": "all",
+      "displayName": "Key Vault access policy",
+      "description": "AD Groups, Service Principals that can be granted permissions to the Key Vault",
+      "policyRule": {
+        "if": {
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.KeyVault/vaults"
+            },
+            {
+              "field": "Microsoft.Keyvault/vaults/accessPolicies[*].objectId",
+              "notEquals": "[parameters('userObjectId')]"
+            }
+          ]
+        },
+        "then": {
+          "effect": "DeployIfNotExists",
+          "details": {
+            "type": "Microsoft.KeyVault/vaults",
+            "name": "current",
+            "roleDefinitionIds": [
+              "/providers/Microsoft.Authorization/roleDefinitions/f25e0fa2-a7c8-4377-a976-54943a77a395"
+            ],
+            "deployment": {
+              "properties": {
+                "mode": "incremental",
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "parameters": {
+                    "objectId": {
+                      "type": "string"
+                    },
+                    "keyVaultName": {
+                      "type": "string"
+                    },
+                    "secretsPermissions": {
+                      "type": "array",
+                      "defaultValue": [
+                        "list"
+                      ]
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "location": {
+                      "type": "string"
+                    },
+                    "sku": {
+                      "type": "object"
+                    },
+                    "existingAccessPolicies": {
+                      "type": "array",
+                      "defaultValue": []
+                    }
+                  },
+                  "variables": {
+                    "accessPolicies": [
+                      {
+                        "tenantId": "[parameters('tenantId')]",
+                        "objectId": "[parameters('objectId')]",
+                        "permissions": {
+                          "secrets": "[parameters('secretsPermissions')]"
+                        }
+                      }
+                    ]
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KeyVault/vaults",
+                      "name": "[parameters('keyVaultName')]",
+                      "location": "[parameters('location')]",
+                      "apiVersion": "2018-02-14",
+                      "properties": {
+                        "sku": "[parameters('sku')]",
+                        "tenantId": "[parameters('tenantId')]",
+                        "accessPolicies": "[concat(parameters('existingAccessPolicies'), variables('accessPolicies'))]"
+                      }
+                    }
+                  ]
+                },
+                "parameters": {
+                  "objectId": {
+                    "value": "[parameters('userObjectId')]"
+                  },
+                  "tenantId": {
+                    "value": "[field('Microsoft.Keyvault/vaults/tenantId')]"
+                  },
+                  "keyVaultName": {
+                    "value": "[field('name')]"
+                  },
+                  "location": {
+                    "value": "[field('location')]"
+                  },
+                  "sku": {
+                    "value": "[field('Microsoft.Keyvault/vaults/sku')]"
+                  },
+                  "existingAccessPolicies": {
+                    "value": "[field('Microsoft.Keyvault/vaults/accessPolicies')]"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "parameters": {
+        "userObjectId": {
+          "type": "String",
+          "metadata": {
+            "displayName": "User Object ID",
+            "description": "The GUID for the user which should have access"
+          }
+        }
+      }
+    }  
+  }
