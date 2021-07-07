@@ -140,6 +140,83 @@ DeployIfNotExists runs about 15 minutes after a Resource Provider has handled a 
 
 When a new Key Vault is created, the Azure Policy will scan the resource & find that the Security Group object id is not present in the access policy. It will mark it as non-compliant stating "No related resources match the effect details in the policy definition: Resource Not Found". It will then add the Security Group to the access policy for the key vault.
 
+## Example: Azure Policy to enable Soft Delete & Purge Protection for a Key Vault
+In this example, the Key Vault will be enabled to have purge protection enabled.
+> At the time of writing this document, Soft Delete was enabled by default in Azure.
+
+```bash
+# Create a key vault before the policy assignment
+kvName=kv-azpolicy-sd3
+rgName=rg-demo
+location=canadacentral
+az keyvault create -n $kvName -g $rgName -l $location --no-wait --verbose
+# Check the Purge protection & retention date status
+az keyvault show -n $kvName \
+    --query '{Name:name, PurgeProtection:properties.enablePurgeProtection, RetentionPeriod:properties.softDeleteRetentionInDays}'
+# Result should be like this
+{
+  "Name": "kv-azpolicy-sd3",
+  "PurgeProtection": null,
+  "RetentionPeriod": 90
+}
+
+# Create a policy definition
+policyName=enable-keyvault-purgeprotection
+rules=updateKeyVaultSoftDeletePolicy.rules.json
+# Create a custom policy by passing the rules json file
+az policy definition create --name $policyName \
+    --display-name 'Enable AKV Soft Delete and Purge Protection' \
+    --rules $rules \
+    --mode all --verbose 
+	
+# The assignment scope in this case is the resource group	
+rgName=rg-demo
+scope=$(az group show -n $rgName | jq -r ".id")
+
+# Assign the above created policy definition to the resource group rg-demo 
+paName=kv-enable-purgeprotection
+az policy assignment create --name $paName \
+    --display-name $policyName \
+    --scope $scope --policy $policyName \
+    --assign-identity --location canadacentral \
+    --identity-scope $scope --role Contributor
+	
+# Run policy scan on demand
+az policy state trigger-scan --resource-group $rgName --debug
+
+# Create a policy remediation task
+paId=$(az policy assignment show -n $paName --scope $scope | jq -r ".id")
+az policy remediation create -g $rgName -n remediationTask \
+    --policy-assignment $paId --debug
+	
+# Test the policy assignment for existing key vault
+# Check the Purge protection & retention date status
+kvName=kv-azpolicy-sd3
+az keyvault show -n $kvName \
+    --query '{Name:name, PurgeProtection:properties.enablePurgeProtection, RetentionPeriod:properties.softDeleteRetentionInDays}'
+# Result should be like this
+{
+  "Name": "kv-azpolicy-sd3",
+  "PurgeProtection": true,
+  "RetentionPeriod": 90
+}
+
+# Test the policy assignment for new key vault
+kvName=kv-azpolicy-sd6
+rgName=rg-demo
+location=canadacentral
+az keyvault create -n $kvName -g $rgName -l $location --no-wait --verbose
+# Check the purge protection & retention date status
+az keyvault show -n $kvName \
+    --query '{Name:name, PurgeProtection:properties.enablePurgeProtection, RetentionPeriod:properties.softDeleteRetentionInDays}'
+# Result should be like this
+{
+  "Name": "kv-azpolicy-sd6",
+  "PurgeProtection": true,
+  "RetentionPeriod": 90
+}
+```
+
 ## References
 * [Understand Azure Policy effects](https://docs.microsoft.com/en-us/azure/governance/policy/concepts/effects)
 * [Remediate non-compliant resources with Azure Policy](https://docs.microsoft.com/en-us/azure/governance/policy/how-to/remediate-resources)
