@@ -1,0 +1,53 @@
+{
+    "if": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.KeyVault/vaults"
+            },
+            {
+              "field": "Microsoft.KeyVault/vaults/enableSoftDelete",
+              "equals": "false"
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "field": "type",
+              "equals": "Microsoft.KeyVault/vaults"
+            },
+            {
+              "not": {
+                "field": "Microsoft.KeyVault/vaults/enablePurgeProtection",
+                "equals": "true"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "then": {
+      "effect": "modify",
+      "details": {
+        "roleDefinitionIds": [
+          "/providers/Microsoft.Authorization/roleDefinitions/f25e0fa2-a7c8-4377-a976-54943a77a395"
+        ],
+        "conflictEffect": "audit",
+        "operations": [
+          {
+            "operation": "addOrReplace",
+            "field": "Microsoft.KeyVault/vaults/enableSoftDelete",
+            "value": true
+          },
+          {
+            "operation": "addOrReplace",
+            "field": "Microsoft.KeyVault/vaults/enablePurgeProtection",
+            "value": true
+          }
+        ]
+      }
+    }
+}
